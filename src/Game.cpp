@@ -1,18 +1,27 @@
 #include "Game.hpp"
-#include <cmath> // Für std::floor
+#include <cmath>
 
-Game::Game() 
+Game::Game()
     : mWindow(sf::VideoMode({1280, 720}), "Strata - C++ Sandbox"), // {} für Vector2u
     mWorld(100, 50),
     mFpsTimer(0.f),
     mFrameCount(0),
     mFont(),
     mFpsText(mFont),
-    mInventoryText(mFont) {
+    mInventoryText(mFont),
+    mLightSprite(mLightMap.getTexture()) {
 
     if (!mFont.openFromFile("../assets/GoogleSans-Medium.ttf")) {
         // Fehlerbehandlung, falls die Datei fehlt
     }
+
+    if (!mLightMap.resize({1280, 720})) {
+        // Fehlerbehandlung
+    }
+
+    mTorchLight.setRadius(200.f);
+    mTorchLight.setOrigin({200.f, 200.f});
+    mTorchLight.setFillColor(sf::Color(255, 255, 255, 255));
 
     mFpsText.setCharacterSize(20);
     mFpsText.setFillColor(sf::Color::Yellow);
@@ -20,14 +29,19 @@ Game::Game()
 
     mInventoryText.setCharacterSize(20);
     mInventoryText.setFillColor(sf::Color::White);
-    mInventoryText.setPosition({10.f, 40.f}); // Y auf 40 schieben!
+    mInventoryText.setPosition({10.f, 40.f});
 
     mWorldView.setSize({1280.f, 720.f});
     mWorldView.setCenter({640.f, 360.f});
 
     mPlayer.setSize({40.f, 60.f});
     mPlayer.setFillColor(sf::Color::Red);
-    mPlayer.setPosition({600.f, 300.f}); // Vector2f statt (x, y)
+    mPlayer.setPosition({600.f, 300.f});
+
+    mTorchLight.setRadius(120.f);
+    mTorchLight.setOrigin({120.f, 120.f});
+    mTorchLight.setFillColor(sf::Color(255, 255, 255, 220));
+    // TODO: Make a nice gradient texture instead of flat circle
 }
 
 void Game::run() {
@@ -76,9 +90,8 @@ void Game::processEvents() {
             }
         }
 
-        // Rechtsklick zum Bauen (optional)
+        // Rechtsklick zum Bauen
         if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Right)) {
-            // Nur bauen, wenn wir Steine im Inventar haben!
             if (mInventoryStone > 0) {
                 sf::Vector2f worldPos = mWindow.mapPixelToCoords(sf::Mouse::getPosition(mWindow), mWorldView);
                 int tileX = static_cast<int>(std::floor(worldPos.x / 32.f));
@@ -95,14 +108,33 @@ void Game::processEvents() {
                 }
             }
         }
+
+        // TODO: Put in Right Mouse Click with Inventar System (Crafting?)
+        if (event->is<sf::Event::KeyPressed>()) {
+            auto* key = event->getIf<sf::Event::KeyPressed>();
+            if (key && key->code == sf::Keyboard::Key::T) {
+                sf::Vector2f worldPos = mWindow.mapPixelToCoords(sf::Mouse::getPosition(mWindow), mWorldView);
+                int tx = static_cast<int>(std::floor(worldPos.x / 32.f));
+                int ty = static_cast<int>(std::floor(worldPos.y / 32.f));
+
+                if (tx >= 0 && tx < mWorld.getWidth() && ty >= 0 && ty < mWorld.getHeight() &&
+                    mWorld.getTileType(tx, ty) == TileType::Air)
+                {
+                    // Fackel als Block setzen
+                    mWorld.setTile(tx, ty, TileType::Torch);
+
+                    // mInventoryTorch--;
+                }
+            }
+        }
     }
 }
 
 void Game::checkCollision(bool xDirection) {
-    mIsOnGround = false; // Reset, wir prüfen es gleich neu
+    mIsOnGround = false;
     sf::FloatRect playerBounds = mPlayer.getGlobalBounds();
 
-    // Wir prüfen nur die Tiles in der unmittelbaren Umgebung des Spielers
+    // Only Check Tiles in near of the Player (Performance)
     int startX = static_cast<int>(playerBounds.position.x / 32.f);
     int endX   = static_cast<int>((playerBounds.position.x + playerBounds.size.x) / 32.f);
     int startY = static_cast<int>(playerBounds.position.y / 32.f);
@@ -133,7 +165,7 @@ void Game::checkCollision(bool xDirection) {
                             mVelocity.y = 0;
                         }
                     }
-                    // Wichtig: Bounds nach der Korrektur aktualisieren, falls wir mehrere Blöcke berühren
+
                     playerBounds = mPlayer.getGlobalBounds();
                 }
             }
@@ -143,7 +175,7 @@ void Game::checkCollision(bool xDirection) {
 
 void Game::update(float dt) {
     float moveSpeed = 400.f; // Pixel pro Sekunde
-    mVelocity.x = 0.f; // Horizontaler Stopp, wenn keine Taste gedrückt wird
+    mVelocity.x = 0.f;
 
     // 1. Input
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
@@ -163,9 +195,9 @@ void Game::update(float dt) {
     mPlayer.move({0.f, mVelocity.y * dt});
     checkCollision(false); // false = wir prüfen Y
 
-    // 5. Springen (nur wenn auf dem Boden)
+    // 4. Springen
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space) && mIsOnGround) {
-        mVelocity.y = -500.f; // Ein kräftiger Impuls nach oben
+        mVelocity.y = -500.f;
     }
 
     mFpsTimer += dt;
@@ -192,54 +224,87 @@ void Game::update(float dt) {
     /*
      * Tag-Nach Zyklus
      */
-    mDayTime += dt * 0.01f; // Geschwindigkeit des Tageslaufs
+    mDayTime += dt * 0.1f; // Geschwindigkeit des Tageslaufs → Je 100 sek
     if (mDayTime > 1.0f) mDayTime = 0.0f;
 
-    mNightFactor = std::sin(mDayTime * 3.14159f * 2.0f);
+    // === Tageshelligkeit für Lightmap (wird in render() benutzt) ===
+    float t = std::fmod(mDayTime, 1.f);
+    float sun = std::max(0.f, std::sin(t * 6.28318f + 1.57f));
+    mBrightness = (sun + 1.f) * 0.5f;   // 0.0 = Mitternacht, 1.0 = Mittag
 
-    if (mNightFactor > 0.2f) {
-        // Tag: Hellblau
-        mSkyColor = sf::Color(135, 206, 235);
-    } else if (mNightFactor < -0.2f) {
-        mSkyColor = sf::Color(15, 15, 45);
-    } else {
-        mSkyColor = sf::Color(100, 80, 120);
-    }
+    sf::Color day(135, 206, 235);
+    sf::Color night(15, 15, 45);
+
+    mSkyColor = sf::Color(
+        static_cast<uint8_t>(day.r * sun + night.r * (1-sun)),
+        static_cast<uint8_t>(day.g * sun + night.g * (1-sun)),
+        static_cast<uint8_t>(day.b * sun + night.b * (1-sun))
+    );
 }
 
 void Game::render() {
-    mWindow.clear(mSkyColor); // Nutze die berechnete Himmelsfarbe!
+    // --- Standard Camera Follow
     mWorldView.setCenter({ std::round(mPlayer.getPosition().x), std::round(mPlayer.getPosition().y) });
-
     mWindow.setView(mWorldView);
-    mWindow.draw(mWorld);
 
+    mWindow.clear(mSkyColor);
+
+    // Welt, Partikel + Spieler
+    mWindow.draw(mWorld);
     for (const auto& p : mParticles) {
         sf::RectangleShape shape({4.f, 4.f});
         shape.setPosition(p.pos);
         shape.setFillColor(p.color);
         mWindow.draw(shape);
     }
-
     mWindow.draw(mPlayer);
 
-    // --- LICHT / NACHT EFFEKT ---
-    if (mNightFactor < 0.0f) { // Wenn es Nacht wird
-        mWindow.setView(mWindow.getDefaultView());
-        // Einfache Vignette (Dunkler Rand)
-        sf::RectangleShape vignette(sf::Vector2f(mWindow.getSize()));
-        vignette.setFillColor(sf::Color(0, 0, 0, 180)); // Dunkelheit
-        mWindow.draw(vignette);
+    // --- Lightmaps
+    mLightMap.clear(getAmbientColor());
+    mLightMap.setView(mWorldView);
+
+    // Nur Tiles im Sichtbereich prüfen (Performance)
+    int viewTileLeft   = static_cast<int>((mPlayer.getPosition().x - 640) / 32.f) - 5;
+    int viewTileRight  = static_cast<int>((mPlayer.getPosition().x + 640) / 32.f) + 5;
+    int viewTileTop    = static_cast<int>((mPlayer.getPosition().y - 360) / 32.f) - 5;
+    int viewTileBottom = static_cast<int>((mPlayer.getPosition().y + 360) / 32.f) + 5;
+
+    for (int y = std::max(0, viewTileTop); y <= std::min(mWorld.getHeight() - 1, viewTileBottom); ++y) {
+        for (int x = std::max(0, viewTileLeft); x <= std::min(mWorld.getWidth() - 1, viewTileRight); ++x) {
+            if (mWorld.getTileType(x, y) == TileType::Torch) {
+                // Position = **Mitte des Tile** – Welt-Koordinaten!
+                sf::Vector2f torchPos(x * 32.f + 16.f, y * 32.f + 16.f);
+
+                mTorchLight.setPosition(torchPos);          // ← entscheidend: immer neu setzen!
+                mTorchLight.setRadius(140.f);
+                mTorchLight.setFillColor(sf::Color(255, 190, 100, 220));
+
+                mLightMap.draw(mTorchLight, sf::BlendAdd);
+            }
+        }
     }
 
-    // --- UI ---
     mWindow.setView(mWindow.getDefaultView());
-    mWindow.draw(mFpsText);
+    mLightMap.display();
 
-    // Inventar-Anzeige
+    // --- Licht auf die Szene projection
+    mWindow.setView(mWindow.getDefaultView());
+    mLightSprite.setTexture(mLightMap.getTexture(), true);
+    mWindow.draw(mLightSprite, sf::BlendMultiply);
+
+    // UI (unbeleuchtet)
+    mWindow.draw(mFpsText);
     mInventoryText.setString("Dirt: " + std::to_string(mInventoryDirt) +
                              " | Stone: " + std::to_string(mInventoryStone));
     mWindow.draw(mInventoryText);
 
     mWindow.display();
+}
+
+sf::Color Game::getAmbientColor() const {
+    // brightness aus update() – am besten als Member-Variable speichern!
+    float ambient = 0.18f + 0.82f * mBrightness;  // 18% nachts → ~100% mittags
+    uint8_t val = static_cast<uint8_t>(ambient * 255);
+    return sf::Color(val, val, val, 255);        // Grau → neutral
+    // oder leicht getönt: sf::Color(val*0.95, val, val*1.05, 255);
 }

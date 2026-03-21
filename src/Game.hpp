@@ -11,6 +11,13 @@ struct Particle {
     sf::Color color;
 };
 
+struct LightSource {
+    sf::Vector2f position;
+    float        radius   = 120.f;
+    sf::Color    color    = sf::Color::White;
+    float        intensity = 1.0f;
+};
+
 class Game {
 public:
     Game();         // Konstruktor (Initialisierung)
@@ -21,6 +28,7 @@ private:
     void update(float dt);        // Logik (Physik, Bewegung)
     void checkCollision(bool xDirection); //Kollisionen
     void render();        // Zeichnen
+    sf::Color getAmbientColor() const;
 
     sf::RenderWindow mWindow;
     sf::RectangleShape mPlayer; // Unser Platzhalter für den Spieler
@@ -41,10 +49,16 @@ private:
 
     float mDayTime = 0.5f; // 0.0 = Mitternacht, 0.5 = Mittag, 1.0 = Mitternacht
     sf::Color mSkyColor;
-    float mNightFactor = 0.f;
     int mInventoryDirt = 0;
     int mInventoryStone = 0;
     sf::Text mInventoryText; // Zum Anzeigen der Items
+
+    // Lightning
+    sf::RenderTexture mLightMap;
+    sf::Sprite mLightSprite;
+    sf::CircleShape mTorchLight;
+    std::vector<LightSource> mLights;
+    float mBrightness = 0.f;
 };
 
 #endif

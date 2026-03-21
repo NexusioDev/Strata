@@ -31,7 +31,8 @@ World::World(int width, int height)
 
 bool World::isSolid(int x, int y) const {
     if (x < 0 || x >= mWidth || y < 0 || y >= mHeight) return true; // Weltgrenzen sind solide
-    return mTiles[y * mWidth + x].type != TileType::Air;
+    TileType t = mTiles[y * mWidth + x].type;
+    return t != TileType::Air && t != TileType::Torch;
 }
 
 void World::setTile(int x, int y, TileType type) {
@@ -63,7 +64,8 @@ void World::updateGeometry() {
             sf::Color color;
             if (type == TileType::Dirt) color = sf::Color(139, 69, 19);
             else if (type == TileType::Stone) color = sf::Color(100, 100, 100); // Grau für Stein
-            else if (type == TileType::Grass) color = sf::Color(0, 177, 0); // Grau für Stein
+            else if (type == TileType::Grass) color = sf::Color(40 + rand()%40, 140 + rand()%60, 40 + rand()%30);
+            else if (type == TileType::Torch) color = sf::Color(255, 180, 60);  // warm orange-gelb
             else color = sf::Color::White;
 
             // Dreieck 1

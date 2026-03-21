@@ -11,6 +11,7 @@ enum class TileType : uint8_t {
     Dirt = 1,
     Stone = 2,
     Grass = 3,
+    Torch = 4,
 };
 
 struct Tile {
@@ -25,6 +26,9 @@ public:
     TileType getTileType(int x, int y) const;
 
     bool isSolid(int x, int y) const;
+
+    int getWidth() const { return mWidth; }
+    int getHeight() const { return mHeight; }
     
     // WICHTIG: Aktualisiert das VertexArray (muss gerufen werden, wenn sich Blöcke ändern)
     void updateGeometry();

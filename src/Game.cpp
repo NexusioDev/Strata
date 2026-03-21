@@ -140,7 +140,7 @@ void Game::processEvents() {
                 for (int x = 0; x < mWorld.getWidth(); ++x) {
                     for (int y = 0; y < mWorld.getHeight(); ++y) {
                         TileType tileType = mWorld.getTileType(x, y);
-                        sf::Color tileColor = TileRegistry::get().at(tileType).color;
+                        sf::Color tileColor = TileRegistry::get().at(tileType).mindMapColor;
                         image.setPixel(sf::Vector2u(x, y), tileColor);
                     }
                 }
@@ -293,7 +293,8 @@ void Game::render() {
 
     for (int y = std::max(0, viewTileTop); y <= std::min(mWorld.getHeight() - 1, viewTileBottom); ++y) {
         for (int x = std::max(0, viewTileLeft); x <= std::min(mWorld.getWidth() - 1, viewTileRight); ++x) {
-            if (mWorld.getTileType(x, y) == TileType::Torch) {
+            TileType t = mWorld.getTileType(x, y);
+            if (TileRegistry::get().at(t).isLightSource) {
                 // Position = **Mitte des Tile** – Welt-Koordinaten!
                 sf::Vector2f torchPos(x * mWorld.getTileSize() + 16.f, y * mWorld.getTileSize() + 16.f);
 

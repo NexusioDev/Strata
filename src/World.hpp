@@ -20,13 +20,14 @@ enum class TileType : uint8_t {
 
 struct Tile {
     TileType type = TileType::Air;
-    sf::Color color = sf::Color::White;
 };
 
 struct TileInfo {
     std::string name;
-    sf::Color color;
+    sf::Vector2i textureCoords;
+    sf::Color mindMapColor;
     bool isSolid;
+    bool isLightSource;
     // Hier kannst du später mehr hinzufügen:
     // float hardness; (für Abbaugeschwindigkeit)
     // int lightEmission;
@@ -60,6 +61,7 @@ private:
     
     // Das Herzstück für Performance und Lücken-Freiheit
     sf::VertexArray mVertexArray;
+    sf::Texture mTextureAtlas;
 };
 
 #endif

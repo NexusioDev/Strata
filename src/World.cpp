@@ -9,6 +9,9 @@ World::World(int width, int height, unsigned int seed)
     mTiles.resize(width * height, Tile{TileType::Air});
     // VertexArray als Quads (4 Punkte pro Block) initialisieren
     mVertexArray.setPrimitiveType(sf::PrimitiveType::TriangleFan);
+    if (!mTextureAtlas.loadFromFile("../assets/tileset.png")) {
+        // Fehlerbehandlung
+    }
 
     // Einstellungen für das Terrain
     float terrainScale = 0.05f;  // Höherer Wert = mehr Hügel
@@ -16,6 +19,7 @@ World::World(int width, int height, unsigned int seed)
 
     // Einstellungen für Erze
     float oreScale = 0.12f;      // Größe der Erzadern
+    float goldScale = 0.22f;
     float coalThreshold = 0.55f;  // Seltenheit (0.5 - 0.9)
     float ironThreshold = 0.65f;
     float goldThreshold = 0.75f;
@@ -31,30 +35,24 @@ World::World(int width, int height, unsigned int seed)
 
             if (y == surfaceY) {
                 mTiles[index].type = TileType::Grass;
-                mTiles[index].color = TileRegistry::get().at(TileType::Grass).color;
             }
             else if (y < surfaceY + 6) {
                 mTiles[index].type = TileType::Dirt;
-                mTiles[index].color = TileRegistry::get().at(TileType::Dirt).color;
             }
             else {
                 // 2D Noise, für Ores etc.
                 double coalNoise = mNoise.noise(x * oreScale, y * oreScale);
                 double ironNoise = mNoise.noise(x * oreScale + 100 * 2, y * oreScale * 2);
-                double goldNoise = mNoise.noise(x * oreScale + 200 * 3, y * oreScale * 3);
+                double goldNoise = mNoise.noise(x * goldScale + 200, y * goldScale);
 
                 if (coalNoise > coalThreshold) {
                     mTiles[index].type = TileType::Coal; // Oder ein anderes Erz
-                    mTiles[index].color = TileRegistry::get().at(TileType::Coal).color;
                 } else if (ironNoise > ironThreshold) {
                     mTiles[index].type = TileType::Iron;
-                    mTiles[index].color = TileRegistry::get().at(TileType::Iron).color;
                 } else if (goldNoise > goldThreshold) {
                     mTiles[index].type = TileType::Gold;
-                    mTiles[index].color = TileRegistry::get().at(TileType::Gold).color;
                 } else {
                     mTiles[index].type = TileType::Stone;
-                    mTiles[index].color = TileRegistry::get().at(TileType::Stone).color;
                 }
             }
         }
@@ -72,7 +70,6 @@ bool World::isSolid(int x, int y) const {
 void World::setTile(int x, int y, TileType type) {
     if (x >= 0 && x < mWidth && y >= 0 && y < mHeight) {
         mTiles[y * mWidth + x].type = type;
-        mTiles[y * mWidth + x].color = TileRegistry::get().at(type).color;
         updateGeometry(); // WICHTIG: Grafik neu berechnen!
     }
 }
@@ -90,23 +87,39 @@ void World::updateGeometry() {
     mVertexArray.resize(mWidth * mHeight * 6);
 
     int v = 0; // Vertex Index Counter
+    float ts = mTileSize;
+    float texSize = 16.f;
+
     for (int y = 0; y < mHeight; ++y) {
         for (int x = 0; x < mWidth; ++x) {
             TileType type = mTiles[y * mWidth + x].type;
             if (type == TileType::Air) continue;
 
-            sf::Color color = mTiles[y * mWidth + x].color;
-            sf::Vector2f pos(x * mTileSize, y * mTileSize);
+            // Infos aus Registry holen
+            const auto& info = TileRegistry::get().at(type);
+            sf::Vector2f tex(info.textureCoords.x * texSize, info.textureCoords.y * texSize);
 
-            // Dreieck 1
-            mVertexArray[v + 0] = { {pos.x, pos.y}, color };                         // Oben Links
-            mVertexArray[v + 1] = { {pos.x + mTileSize, pos.y}, color };             // Oben Rechts
-            mVertexArray[v + 2] = { {pos.x, pos.y + mTileSize}, color };             // Unten Links
+            sf::Vector2f pos(x * ts, y * ts);
 
-            // Dreieck 2
-            mVertexArray[v + 3] = { {pos.x + mTileSize, pos.y}, color };             // Oben Rechts
-            mVertexArray[v + 4] = { {pos.x + mTileSize, pos.y + mTileSize}, color }; // Unten Rechts
-            mVertexArray[v + 5] = { {pos.x, pos.y + mTileSize}, color };             // Unten Links
+            // --- Dreieck 1 ---
+            mVertexArray[v + 0].position = {pos.x, pos.y};
+            mVertexArray[v + 0].texCoords = {tex.x, tex.y}; // Oben Links (16px Basis)
+
+            mVertexArray[v + 1].position = {pos.x + ts, pos.y};
+            mVertexArray[v + 1].texCoords = {tex.x + texSize, tex.y}; // Oben Rechts (+16px)
+
+            mVertexArray[v + 2].position = {pos.x, pos.y + ts};
+            mVertexArray[v + 2].texCoords = {tex.x, tex.y + texSize}; // Unten Links (+16px)
+
+            // --- Dreieck 2 ---
+            mVertexArray[v + 3].position = {pos.x + ts, pos.y};
+            mVertexArray[v + 3].texCoords = {tex.x + texSize, tex.y};
+
+            mVertexArray[v + 4].position = {pos.x + ts, pos.y + ts};
+            mVertexArray[v + 4].texCoords = {tex.x + texSize, tex.y + texSize};
+
+            mVertexArray[v + 5].position = {pos.x, pos.y + ts};
+            mVertexArray[v + 5].texCoords = {tex.x, tex.y + texSize};
 
             v += 6;
         }
@@ -116,5 +129,6 @@ void World::updateGeometry() {
 
 void World::draw(sf::RenderTarget& target, sf::RenderStates states) const {
     // Wir zeichnen einfach das gesamte VertexArray auf einmal
+    states.texture = &mTextureAtlas;
     target.draw(mVertexArray, states);
 }

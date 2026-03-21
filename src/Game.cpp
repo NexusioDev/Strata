@@ -3,7 +3,7 @@
 
 Game::Game()
     : mWindow(sf::VideoMode({1280, 720}), "Strata - C++ Sandbox"), // {} für Vector2u
-    mWorld(100, 50),
+    mWorld(300, 300, static_cast<unsigned int>(std::time(nullptr))),
     mFpsTimer(0.f),
     mFrameCount(0),
     mFont(),
@@ -34,7 +34,7 @@ Game::Game()
     mWorldView.setSize({1280.f, 720.f});
     mWorldView.setCenter({640.f, 360.f});
 
-    mPlayer.setSize({40.f, 60.f});
+    mPlayer.setSize({38.f, 55.f});
     mPlayer.setFillColor(sf::Color::Red);
     mPlayer.setPosition({600.f, 300.f});
 
@@ -126,6 +126,31 @@ void Game::processEvents() {
                     mWorld.setTile(tx, ty, TileType::Torch);
 
                     // mInventoryTorch--;
+                }
+            }
+        }
+
+        //Debug, export world as Picture
+        if (event->is<sf::Event::KeyPressed>()) {
+            auto* key = event->getIf<sf::Event::KeyPressed>();
+            if (key && key->code == sf::Keyboard::Key::M) {
+                sf::Image image(sf::Vector2u(mWorld.getWidth(), mWorld.getHeight()));
+                for (int x = 0; x < mWorld.getWidth(); ++x) {
+                    for (int y = 0; y < mWorld.getHeight(); ++y) {
+                        TileType tileType = mWorld.getTileType(x, y);
+                        sf::Color tileColor;
+                        if (tileType == TileType::Air) tileColor = sf::Color::Black;
+                        else if (tileType == TileType::Dirt) tileColor = sf::Color(139, 69, 19);
+                        else if (tileType == TileType::Stone) tileColor = sf::Color(100, 100, 100); // Grau für Stein
+                        else if (tileType == TileType::Grass) tileColor = sf::Color(40 + rand()%40, 140 + rand()%60, 40 + rand()%30);
+                        else if (tileType == TileType::Torch) tileColor = sf::Color(255, 180, 60);
+                        else if (tileType == TileType::Coal) tileColor = sf::Color::White;
+                        else tileColor = sf::Color::Magenta;
+                        image.setPixel(sf::Vector2u(x, y), tileColor);
+                    }
+                }
+                if (image.saveToFile("mein_bild_sfml3.png")) {
+                    // Erfolg!
                 }
             }
         }

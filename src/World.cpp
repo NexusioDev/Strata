@@ -1,31 +1,49 @@
 #include "World.hpp"
 #include <cmath>
 
-World::World(int width, int height) 
-    : mWidth(width), mHeight(height) {
+World::World(int width, int height, unsigned int seed)
+    : mWidth(width), mHeight(height), mSeed(seed), mNoise(seed) {
     
     mTiles.resize(width * height, Tile{TileType::Air});
     // VertexArray als Quads (4 Punkte pro Block) initialisieren
     mVertexArray.setPrimitiveType(sf::PrimitiveType::TriangleFan);
 
+    // Einstellungen für das Terrain
+    float terrainScale = 0.05f;  // Höherer Wert = mehr Hügel
+    float terrainAmp = 10.0f;    // Maximale Hügelhöhe
+
+    // Einstellungen für Erze
+    float oreScale = 0.12f;      // Größe der Erzadern
+    float oreThreshold = 0.55f;  // Seltenheit (0.5 - 0.9)
+
     // World Gen
     for (int x = 0; x < mWidth; ++x) {
-        float amplitude = 4.0f; // Wie hoch sind die Hügel?
-        float frequency = 0.15f; // Wie breit sind die Hügel?
-        int surfaceY = static_cast<int>(15 + std::sin(x * frequency) * amplitude);
+        // 1D Perlin Noise für die Oberfläche
+        float noiseVal = mNoise.noise(x * terrainScale, 0.5);
+        int surfaceY = static_cast<int>((mHeight / 3.0f) + (noiseVal * terrainAmp));
 
         for (int y = surfaceY; y < mHeight; ++y) {
+            int index = y * mWidth + x;
+
             if (y == surfaceY) {
-                mTiles[y * mWidth + x].type = TileType::Grass;
-            } else if (y > surfaceY + 4) {
-                mTiles[y * mWidth + x].type = TileType::Stone;
-            } else {
-                mTiles[y * mWidth + x].type = TileType::Dirt;
+                mTiles[index].type = TileType::Grass;
+            }
+            else if (y < surfaceY + 4) {
+                mTiles[index].type = TileType::Dirt;
+            }
+            else {
+                // 2D Noise, für Ores etc.
+                double oreNoise = mNoise.noise(x * oreScale, y * oreScale);
+
+                if (oreNoise > oreThreshold) {
+                    mTiles[index].type = TileType::Coal; // Oder ein anderes Erz
+                } else {
+                    mTiles[index].type = TileType::Stone;
+                }
             }
         }
     }
-    
-    // Geometrie einmalig erstellen
+
     updateGeometry();
 }
 

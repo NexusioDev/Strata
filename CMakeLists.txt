@@ -9,6 +9,8 @@ add_executable(Strata src/main.cpp
         src/Game.hpp
         src/Game.cpp
         src/world.hpp
-        src/World.cpp)
+        src/World.cpp
+        src/PerlinNoise.cpp
+        src/PerlinNoise.hpp)
 
 target_link_libraries(Strata PRIVATE SFML::Network SFML::Graphics SFML::Window SFML::Audio SFML::System)

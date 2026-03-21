@@ -4,6 +4,7 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <cstdint>
+#include "PerlinNoise.hpp"
 
 // Ein einfacher Block-Typ
 enum class TileType : uint8_t {
@@ -12,6 +13,7 @@ enum class TileType : uint8_t {
     Stone = 2,
     Grass = 3,
     Torch = 4,
+    Coal = 5,
 };
 
 struct Tile {
@@ -20,7 +22,7 @@ struct Tile {
 
 class World : public sf::Drawable { // Ermöglicht window.draw(world)
 public:
-    World(int width, int height);
+    World(int width, int height, unsigned int seed);
     void setTile(int x, int y, TileType type);
     float getTileSize() const { return mTileSize; }
     TileType getTileType(int x, int y) const;
@@ -41,6 +43,8 @@ private:
     int mHeight;
     const float mTileSize = 20.f;
     std::vector<Tile> mTiles;
+    PerlinNoise mNoise;
+    unsigned int mSeed;
     
     // Das Herzstück für Performance und Lücken-Freiheit
     sf::VertexArray mVertexArray;

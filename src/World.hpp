@@ -39,7 +39,7 @@ private:
 
     int mWidth;
     int mHeight;
-    const float mTileSize = 32.f;
+    const float mTileSize = 20.f;
     std::vector<Tile> mTiles;
     
     // Das Herzstück für Performance und Lücken-Freiheit

@@ -65,28 +65,30 @@ void Game::processEvents() {
         // Linksklick zum Abbauen
         if (event->is<sf::Event::MouseButtonPressed>()) {
             sf::Vector2f worldPos = mWindow.mapPixelToCoords(sf::Mouse::getPosition(mWindow), mWorldView);
-            int tileX = static_cast<int>(worldPos.x / 32.f);
-            int tileY = static_cast<int>(worldPos.y / 32.f);
+            int tileX = static_cast<int>(worldPos.x / mWorld.getTileSize());
+            int tileY = static_cast<int>(worldPos.y / mWorld.getTileSize());
 
             TileType hitType = mWorld.getTileType(tileX, tileY);
 
-            if (hitType == TileType::Dirt) {
+            if (hitType == TileType::Dirt || hitType == TileType::Grass) {
                 mInventoryDirt++;
             }
             if (hitType == TileType::Stone) { mInventoryStone++; }
 
             mWorld.setTile(tileX, tileY, TileType::Air);
 
-            sf::Color pColor = (hitType == TileType::Stone) ? sf::Color(100, 100, 100) : sf::Color(139, 69, 19);
-            for (int i = 0; i < 8; ++i) { // 8 kleine Splitter
-                Particle p;
-                p.pos = worldPos;
-                // Zufällige Richtung und Geschwindigkeit
-                p.vel = { (static_cast<float>(rand() % 100) - 50.f) * 2.f,
-                          (static_cast<float>(rand() % 100) - 80.f) * 2.f };
-                p.lifetime = 1.0f; // 1 Sekunde sichtbar
-                p.color = pColor; // Dreck-Braun
-                mParticles.push_back(p);
+            if (hitType != TileType::Air) {
+                sf::Color pColor = (hitType == TileType::Stone) ? sf::Color(100, 100, 100) : sf::Color(139, 69, 19);
+                for (int i = 0; i < 8; ++i) { // 8 kleine Splitter
+                    Particle p;
+                    p.pos = worldPos;
+                    // Zufällige Richtung und Geschwindigkeit
+                    p.vel = { (static_cast<float>(rand() % 100) - 50.f) * 2.f,
+                              (static_cast<float>(rand() % 100) - 80.f) * 2.f };
+                    p.lifetime = 1.0f; // 1 Sekunde sichtbar
+                    p.color = pColor; // Dreck-Braun
+                    mParticles.push_back(p);
+                }
             }
         }
 
@@ -94,10 +96,10 @@ void Game::processEvents() {
         if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Right)) {
             if (mInventoryStone > 0) {
                 sf::Vector2f worldPos = mWindow.mapPixelToCoords(sf::Mouse::getPosition(mWindow), mWorldView);
-                int tileX = static_cast<int>(std::floor(worldPos.x / 32.f));
-                int tileY = static_cast<int>(std::floor(worldPos.y / 32.f));
+                int tileX = static_cast<int>(std::floor(worldPos.x / mWorld.getTileSize()));
+                int tileY = static_cast<int>(std::floor(worldPos.y / mWorld.getTileSize()));
 
-                sf::FloatRect newTileRect({tileX * 32.f, tileY * 32.f}, {32.f, 32.f});
+                sf::FloatRect newTileRect({tileX * mWorld.getTileSize(), tileY * mWorld.getTileSize()}, {mWorld.getTileSize(), mWorld.getTileSize()});
 
                 // Check: Ist an der Stelle schon ein Block? (Verhindert Ressourcen-Verschwendung)
                 if (mWorld.getTileType(tileX, tileY) == TileType::Air) {
@@ -114,8 +116,8 @@ void Game::processEvents() {
             auto* key = event->getIf<sf::Event::KeyPressed>();
             if (key && key->code == sf::Keyboard::Key::T) {
                 sf::Vector2f worldPos = mWindow.mapPixelToCoords(sf::Mouse::getPosition(mWindow), mWorldView);
-                int tx = static_cast<int>(std::floor(worldPos.x / 32.f));
-                int ty = static_cast<int>(std::floor(worldPos.y / 32.f));
+                int tx = static_cast<int>(std::floor(worldPos.x / mWorld.getTileSize()));
+                int ty = static_cast<int>(std::floor(worldPos.y / mWorld.getTileSize()));
 
                 if (tx >= 0 && tx < mWorld.getWidth() && ty >= 0 && ty < mWorld.getHeight() &&
                     mWorld.getTileType(tx, ty) == TileType::Air)
@@ -135,15 +137,15 @@ void Game::checkCollision(bool xDirection) {
     sf::FloatRect playerBounds = mPlayer.getGlobalBounds();
 
     // Only Check Tiles in near of the Player (Performance)
-    int startX = static_cast<int>(playerBounds.position.x / 32.f);
-    int endX   = static_cast<int>((playerBounds.position.x + playerBounds.size.x) / 32.f);
-    int startY = static_cast<int>(playerBounds.position.y / 32.f);
-    int endY   = static_cast<int>((playerBounds.position.y + playerBounds.size.y) / 32.f);
+    int startX = static_cast<int>(playerBounds.position.x / mWorld.getTileSize());
+    int endX   = static_cast<int>((playerBounds.position.x + playerBounds.size.x) / mWorld.getTileSize());
+    int startY = static_cast<int>(playerBounds.position.y / mWorld.getTileSize());
+    int endY   = static_cast<int>((playerBounds.position.y + playerBounds.size.y) / mWorld.getTileSize());
 
     for (int x = startX; x <= endX; ++x) {
         for (int y = startY; y <= endY; ++y) {
             if (mWorld.isSolid(x, y)) {
-                sf::FloatRect tileBounds({x * 32.f, y * 32.f}, {32.f, 32.f});
+                sf::FloatRect tileBounds({x * mWorld.getTileSize(), y * mWorld.getTileSize()}, {mWorld.getTileSize(), mWorld.getTileSize()});
 
                 // Schnittmenge berechnen
                 if (auto intersection = playerBounds.findIntersection(tileBounds)) {
@@ -174,7 +176,7 @@ void Game::checkCollision(bool xDirection) {
 }
 
 void Game::update(float dt) {
-    float moveSpeed = 400.f; // Pixel pro Sekunde
+    float moveSpeed = 300.f; // Pixel pro Sekunde
     mVelocity.x = 0.f;
 
     // 1. Input
@@ -224,7 +226,7 @@ void Game::update(float dt) {
     /*
      * Tag-Nach Zyklus
      */
-    mDayTime += dt * 0.1f; // Geschwindigkeit des Tageslaufs → Je 100 sek
+    mDayTime += dt * 0.01f; // Geschwindigkeit des Tageslaufs → Je 100 sek
     if (mDayTime > 1.0f) mDayTime = 0.0f;
 
     // === Tageshelligkeit für Lightmap (wird in render() benutzt) ===
@@ -264,16 +266,16 @@ void Game::render() {
     mLightMap.setView(mWorldView);
 
     // Nur Tiles im Sichtbereich prüfen (Performance)
-    int viewTileLeft   = static_cast<int>((mPlayer.getPosition().x - 640) / 32.f) - 5;
-    int viewTileRight  = static_cast<int>((mPlayer.getPosition().x + 640) / 32.f) + 5;
-    int viewTileTop    = static_cast<int>((mPlayer.getPosition().y - 360) / 32.f) - 5;
-    int viewTileBottom = static_cast<int>((mPlayer.getPosition().y + 360) / 32.f) + 5;
+    int viewTileLeft   = static_cast<int>((mPlayer.getPosition().x - 640) / mWorld.getTileSize()) - 5;
+    int viewTileRight  = static_cast<int>((mPlayer.getPosition().x + 640) / mWorld.getTileSize()) + 5;
+    int viewTileTop    = static_cast<int>((mPlayer.getPosition().y - 360) / mWorld.getTileSize()) - 5;
+    int viewTileBottom = static_cast<int>((mPlayer.getPosition().y + 360) / mWorld.getTileSize()) + 5;
 
     for (int y = std::max(0, viewTileTop); y <= std::min(mWorld.getHeight() - 1, viewTileBottom); ++y) {
         for (int x = std::max(0, viewTileLeft); x <= std::min(mWorld.getWidth() - 1, viewTileRight); ++x) {
             if (mWorld.getTileType(x, y) == TileType::Torch) {
                 // Position = **Mitte des Tile** – Welt-Koordinaten!
-                sf::Vector2f torchPos(x * 32.f + 16.f, y * 32.f + 16.f);
+                sf::Vector2f torchPos(x * mWorld.getTileSize() + 16.f, y * mWorld.getTileSize() + 16.f);
 
                 mTorchLight.setPosition(torchPos);          // ← entscheidend: immer neu setzen!
                 mTorchLight.setRadius(140.f);

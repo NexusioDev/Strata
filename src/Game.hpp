@@ -33,7 +33,7 @@ private:
     sf::RenderWindow mWindow;
     sf::RectangleShape mPlayer; // Unser Platzhalter für den Spieler
     sf::View mWorldView; // Das hat gefehlt!
-    float mPlayerSpeed = 200.f;  // Pixel pro Sekunde
+    float mPlayerSpeed = 300.f;  // Pixel pro Sekunde
     sf::Vector2f mVelocity{0.f, 0.f};
     bool mIsOnGround = false;
     const float mGravity = 9.81f * 100.f; // 9.81 m/s^2 skaliert auf Pixel

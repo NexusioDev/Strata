@@ -3,4 +3,12 @@ project(Strata)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(Strata main.cpp)
+find_package(SFML COMPONENTS Network Graphics Window Audio System CONFIG REQUIRED)
+
+add_executable(Strata src/main.cpp
+        src/Game.hpp
+        src/Game.cpp
+        src/world.hpp
+        src/World.cpp)
+
+target_link_libraries(Strata PRIVATE SFML::Network SFML::Graphics SFML::Window SFML::Audio SFML::System)

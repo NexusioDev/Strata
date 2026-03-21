@@ -1,6 +1,8 @@
 #include "World.hpp"
 #include <cmath>
 
+#include "TileRegistry.hpp"
+
 World::World(int width, int height, unsigned int seed)
     : mWidth(width), mHeight(height), mSeed(seed), mNoise(seed) {
     
@@ -14,7 +16,9 @@ World::World(int width, int height, unsigned int seed)
 
     // Einstellungen für Erze
     float oreScale = 0.12f;      // Größe der Erzadern
-    float oreThreshold = 0.55f;  // Seltenheit (0.5 - 0.9)
+    float coalThreshold = 0.55f;  // Seltenheit (0.5 - 0.9)
+    float ironThreshold = 0.65f;
+    float goldThreshold = 0.75f;
 
     // World Gen
     for (int x = 0; x < mWidth; ++x) {
@@ -27,18 +31,30 @@ World::World(int width, int height, unsigned int seed)
 
             if (y == surfaceY) {
                 mTiles[index].type = TileType::Grass;
+                mTiles[index].color = TileRegistry::get().at(TileType::Grass).color;
             }
-            else if (y < surfaceY + 4) {
+            else if (y < surfaceY + 6) {
                 mTiles[index].type = TileType::Dirt;
+                mTiles[index].color = TileRegistry::get().at(TileType::Dirt).color;
             }
             else {
                 // 2D Noise, für Ores etc.
-                double oreNoise = mNoise.noise(x * oreScale, y * oreScale);
+                double coalNoise = mNoise.noise(x * oreScale, y * oreScale);
+                double ironNoise = mNoise.noise(x * oreScale + 100 * 2, y * oreScale * 2);
+                double goldNoise = mNoise.noise(x * oreScale + 200 * 3, y * oreScale * 3);
 
-                if (oreNoise > oreThreshold) {
+                if (coalNoise > coalThreshold) {
                     mTiles[index].type = TileType::Coal; // Oder ein anderes Erz
+                    mTiles[index].color = TileRegistry::get().at(TileType::Coal).color;
+                } else if (ironNoise > ironThreshold) {
+                    mTiles[index].type = TileType::Iron;
+                    mTiles[index].color = TileRegistry::get().at(TileType::Iron).color;
+                } else if (goldNoise > goldThreshold) {
+                    mTiles[index].type = TileType::Gold;
+                    mTiles[index].color = TileRegistry::get().at(TileType::Gold).color;
                 } else {
                     mTiles[index].type = TileType::Stone;
+                    mTiles[index].color = TileRegistry::get().at(TileType::Stone).color;
                 }
             }
         }
@@ -50,12 +66,13 @@ World::World(int width, int height, unsigned int seed)
 bool World::isSolid(int x, int y) const {
     if (x < 0 || x >= mWidth || y < 0 || y >= mHeight) return true; // Weltgrenzen sind solide
     TileType t = mTiles[y * mWidth + x].type;
-    return t != TileType::Air && t != TileType::Torch;
+    return TileRegistry::get().at(t).isSolid;
 }
 
 void World::setTile(int x, int y, TileType type) {
     if (x >= 0 && x < mWidth && y >= 0 && y < mHeight) {
         mTiles[y * mWidth + x].type = type;
+        mTiles[y * mWidth + x].color = TileRegistry::get().at(type).color;
         updateGeometry(); // WICHTIG: Grafik neu berechnen!
     }
 }
@@ -78,13 +95,8 @@ void World::updateGeometry() {
             TileType type = mTiles[y * mWidth + x].type;
             if (type == TileType::Air) continue;
 
+            sf::Color color = mTiles[y * mWidth + x].color;
             sf::Vector2f pos(x * mTileSize, y * mTileSize);
-            sf::Color color;
-            if (type == TileType::Dirt) color = sf::Color(139, 69, 19);
-            else if (type == TileType::Stone) color = sf::Color(100, 100, 100); // Grau für Stein
-            else if (type == TileType::Grass) color = sf::Color(40 + rand()%40, 140 + rand()%60, 40 + rand()%30);
-            else if (type == TileType::Torch) color = sf::Color(255, 180, 60);  // warm orange-gelb
-            else color = sf::Color::White;
 
             // Dreieck 1
             mVertexArray[v + 0] = { {pos.x, pos.y}, color };                         // Oben Links

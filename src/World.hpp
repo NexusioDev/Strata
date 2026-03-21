@@ -14,10 +14,22 @@ enum class TileType : uint8_t {
     Grass = 3,
     Torch = 4,
     Coal = 5,
+    Iron = 6,
+    Gold = 7,
 };
 
 struct Tile {
     TileType type = TileType::Air;
+    sf::Color color = sf::Color::White;
+};
+
+struct TileInfo {
+    std::string name;
+    sf::Color color;
+    bool isSolid;
+    // Hier kannst du später mehr hinzufügen:
+    // float hardness; (für Abbaugeschwindigkeit)
+    // int lightEmission;
 };
 
 class World : public sf::Drawable { // Ermöglicht window.draw(world)

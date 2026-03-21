@@ -1,6 +1,8 @@
 #include "Game.hpp"
 #include <cmath>
 
+#include "TileRegistry.hpp"
+
 Game::Game()
     : mWindow(sf::VideoMode({1280, 720}), "Strata - C++ Sandbox"), // {} für Vector2u
     mWorld(300, 300, static_cast<unsigned int>(std::time(nullptr))),
@@ -138,14 +140,7 @@ void Game::processEvents() {
                 for (int x = 0; x < mWorld.getWidth(); ++x) {
                     for (int y = 0; y < mWorld.getHeight(); ++y) {
                         TileType tileType = mWorld.getTileType(x, y);
-                        sf::Color tileColor;
-                        if (tileType == TileType::Air) tileColor = sf::Color::Black;
-                        else if (tileType == TileType::Dirt) tileColor = sf::Color(139, 69, 19);
-                        else if (tileType == TileType::Stone) tileColor = sf::Color(100, 100, 100); // Grau für Stein
-                        else if (tileType == TileType::Grass) tileColor = sf::Color(40 + rand()%40, 140 + rand()%60, 40 + rand()%30);
-                        else if (tileType == TileType::Torch) tileColor = sf::Color(255, 180, 60);
-                        else if (tileType == TileType::Coal) tileColor = sf::Color::White;
-                        else tileColor = sf::Color::Magenta;
+                        sf::Color tileColor = TileRegistry::get().at(tileType).color;
                         image.setPixel(sf::Vector2u(x, y), tileColor);
                     }
                 }

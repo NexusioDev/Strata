@@ -58,6 +58,7 @@ World::World(int width, int height, unsigned int seed)
         }
     }
 
+    isExposedToAir();
     updateGeometry();
 }
 
@@ -79,6 +80,48 @@ TileType World::getTileType(int x, int y) const {
     return mTiles[y * mWidth + x].type;
 }
 
+void World::isExposedToAir() {
+    for (int x = 0; x < mWidth; ++x) {
+        for (int y = 0; y < mHeight; ++y) {
+            if (x + 1 >= mWidth || x - 1 <= 0) {
+                /*if (getTileType(x - 1,y - 1) == TileType::Air) {
+                    setTile(x, y, TileType::Grass);
+                }*/
+            }
+            else if (getTileType(x,y) == TileType::Dirt) {
+                bool north = getTileType(x,y - 1) == TileType::Air;
+                bool northEast = getTileType(x + 1,y - 1) == TileType::Air;
+                bool northWest = getTileType(x - 1,y - 1) == TileType::Air;
+                bool east = getTileType(x + 1,y) == TileType::Air;
+                bool west = getTileType(x - 1,y) == TileType::Air;
+                if (north|| northEast || northWest || east || west) {
+                    setTile(x, y, TileType::Grass);
+                }
+            }
+        }
+    }
+}
+
+int World::getTileVariation(int x, int y, TileType type) {
+    if (type == TileType::Grass) {
+        bool up = getTileType(x,y - 1) == TileType::Grass;
+        bool down = getTileType(x,y + 1) == TileType::Grass;
+        bool right = getTileType(x + 1,y) == TileType::Grass;
+        bool left = getTileType(x - 1,y) == TileType::Grass;
+        if (down && right) return 0;
+        if (left && right) return 1;
+        if (left && down) return 2;
+        if (down && up && getTileType(x - 1,y) == TileType::Air) return 3;
+        if (down && up && getTileType(x + 1,y) == TileType::Air) return 4;
+        if (left && up) return 5;
+        if (up && right) return 6;
+        else return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
 void World::updateGeometry() {
     mVertexArray.clear();
     mVertexArray.setPrimitiveType(sf::PrimitiveType::Triangles); // Triangles statt Quads
@@ -97,7 +140,8 @@ void World::updateGeometry() {
 
             // Infos aus Registry holen
             const auto& info = TileRegistry::get().at(type);
-            sf::Vector2f tex(info.textureCoords.x * texSize, info.textureCoords.y * texSize);
+            int variation = getTileVariation(x, y, type);
+            sf::Vector2f tex(info.textureCoords[variation].x * texSize, info.textureCoords[variation].y * texSize);
 
             sf::Vector2f pos(x * ts, y * ts);
 

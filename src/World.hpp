@@ -24,10 +24,11 @@ struct Tile {
 
 struct TileInfo {
     std::string name;
-    sf::Vector2i textureCoords;
+    std::vector<sf::Vector2i> textureCoords;
     sf::Color mindMapColor;
     bool isSolid;
     bool isLightSource;
+    int tileVariants;
     // Hier kannst du später mehr hinzufügen:
     // float hardness; (für Abbaugeschwindigkeit)
     // int lightEmission;
@@ -47,6 +48,9 @@ public:
     
     // WICHTIG: Aktualisiert das VertexArray (muss gerufen werden, wenn sich Blöcke ändern)
     void updateGeometry();
+    void isExposedToAir();
+
+    int getTileVariation(int x, int y, TileType type);
 
 private:
     // Diese Funktion wird von sf::Drawable gefordert

@@ -80,7 +80,7 @@ void Game::processEvents() {
             mWorld.setTile(tileX, tileY, TileType::Air);
 
             if (hitType != TileType::Air) {
-                sf::Color pColor = (hitType == TileType::Stone) ? sf::Color(100, 100, 100) : sf::Color(139, 69, 19);
+                sf::Color pColor = TileRegistry::get().at(hitType).mindMapColor;
                 for (int i = 0; i < 8; ++i) { // 8 kleine Splitter
                     Particle p;
                     p.pos = worldPos;

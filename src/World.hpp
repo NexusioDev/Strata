@@ -50,7 +50,7 @@ public:
     void updateGeometry();
     void isExposedToAir();
 
-    int getTileVariation(int x, int y, TileType type);
+    int getTileVariation(int x, int y, TileType type) const;
 
 private:
     // Diese Funktion wird von sf::Drawable gefordert

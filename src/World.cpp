@@ -24,6 +24,13 @@ World::World(int width, int height, unsigned int seed)
     float ironThreshold = 0.65f;
     float goldThreshold = 0.75f;
 
+    // Caves
+    float caveScale = 0.15f;
+    float caveThreshold = 0.70f;
+    int deepCaveHeight = mHeight / 3 * 2;
+    float deepCaveScale = 0.05f;
+    float deepCaveThreshold = 0.40f;
+
     // World Gen
     for (int x = 0; x < mWidth; ++x) {
         // 1D Perlin Noise für die Oberfläche
@@ -36,7 +43,7 @@ World::World(int width, int height, unsigned int seed)
             if (y == surfaceY) {
                 mTiles[index].type = TileType::Grass;
             }
-            else if (y < surfaceY + 6) {
+            else if (y < surfaceY + 8) {
                 mTiles[index].type = TileType::Dirt;
             }
             else {
@@ -53,6 +60,19 @@ World::World(int width, int height, unsigned int seed)
                     mTiles[index].type = TileType::Gold;
                 } else {
                     mTiles[index].type = TileType::Stone;
+                }
+
+                // Caves
+                double caveNoise = mNoise.noise(x * caveScale + 1000, y * caveScale + 1000);
+                double deepCaveNoise = mNoise.noise(x * deepCaveScale + 2000, y * deepCaveScale + 2000);
+                if (y < deepCaveHeight) {
+                    if (caveNoise > caveThreshold) {
+                        mTiles[index].type = TileType::Air;
+                    }
+                } else if (y >= deepCaveHeight) {
+                    if (deepCaveNoise > deepCaveThreshold) {
+                        mTiles[index].type = TileType::Air;
+                    }
                 }
             }
         }
@@ -102,7 +122,7 @@ void World::isExposedToAir() {
     }
 }
 
-int World::getTileVariation(int x, int y, TileType type) {
+int World::getTileVariation(int x, int y, TileType type) const {
     if (type == TileType::Grass) {
         bool up = getTileType(x,y - 1) == TileType::Grass;
         bool down = getTileType(x,y + 1) == TileType::Grass;

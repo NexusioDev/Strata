@@ -114,6 +114,7 @@ World::World(int width, int height, unsigned int seed)
     }
 
     isExposedToAir();
+    generateTrees();
 }
 
 void World::update() {
@@ -212,6 +213,59 @@ float World::getBiomeBlend(int x) {
 
 float World::getBiomeNoise(int x) {
     return mNoise.noiseNorm(x * 0.005f, 333.3f);
+}
+
+void World::generateTrees() {
+    for (int x = 2; x < mWidth - 2; ++x) {
+        Biome biome = getBiome(x);
+        if (biome == Biome::Desert || biome == Biome::Mountains) continue;
+
+        float treeNoise = mNoise.noiseNorm(x * 0.3f, 777.7f);
+        float threshold = (biome == Biome::Forest) ? 0.5f : 0.75f;
+        if (treeNoise < threshold) continue;
+
+        // Oberfläche finden
+        int surfaceY = -1;
+        for (int y = 0; y < mHeight; ++y) {
+            if (mTiles[y * mWidth + x].type == TileType::Grass) {
+                surfaceY = y;
+                break;
+            }
+        }
+        if (surfaceY < 0) continue;
+
+        // Mindestabstand zum letzten Baum
+        bool tooClose = false;
+        for (int dx = -3; dx <= 3; ++dx) {
+            int nx = x + dx;
+            if (nx < 0 || nx >= mWidth) continue;
+            if (mTiles[(surfaceY - 1) * mWidth + nx].type == TileType::Wood) {
+                tooClose = true;
+                break;
+            }
+        }
+        if (tooClose) continue;
+
+        // Baumhöhe variiert per Noise
+        int trunkHeight = 4 + static_cast<int>(mNoise.noiseNorm(x * 0.5f, 888.8f) * 2.f + 2.f);
+
+        // Stamm setzen
+        for (int i = 1; i <= trunkHeight; ++i)
+            setTile(x, surfaceY - i, TileType::Wood);
+
+        // Blätter
+        int topY = surfaceY - trunkHeight;
+        for (int ly = -2; ly <= 1; ++ly) {
+            int radius = (ly == -2 || ly == 1) ? 1 : 2;
+            for (int lx = -radius; lx <= radius; ++lx) {
+                int tx = x + lx;
+                int ty = topY + ly;
+                if (tx < 0 || tx >= mWidth || ty < 0) continue;
+                if (mTiles[ty * mWidth + tx].type == TileType::Air)
+                    setTile(tx, ty, TileType::Leaves);
+            }
+        }
+    }
 }
 
 void World::rebuildChunk(int chunkX, int chunkY) {

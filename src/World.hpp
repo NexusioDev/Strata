@@ -19,6 +19,8 @@ enum class TileType : uint8_t {
     Sand = 8,
     Sandstone = 9,
     Snow = 10,
+    Wood = 11,
+    Leaves = 12,
 };
 
 enum class Biome { Plains, Desert, Forest, Mountains };
@@ -65,9 +67,7 @@ public:
 
     int getWidth() const { return mWidth; }
     int getHeight() const { return mHeight; }
-    
-    // WICHTIG: Aktualisiert das VertexArray (muss gerufen werden, wenn sich Blöcke ändern)
-    void updateGeometry();
+
     void isExposedToAir();
 
     int getTileVariation(int x, int y, TileType type) const;
@@ -95,10 +95,10 @@ private:
     const Chunk& getChunk(int tileX, int tileY) const;
 
     Biome getBiome(int x);
-
     float getBiomeBlend(int x);
-
     float getBiomeNoise(int x);
+
+    void generateTrees();
 
     void rebuildChunk(int chunkX, int chunkY);
 };

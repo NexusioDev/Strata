@@ -5,7 +5,7 @@
 
 Game::Game()
     : mWindow(sf::VideoMode({1280, 720}), "Strata - C++ Sandbox"), // {} für Vector2u
-    mWorld(300, 300, static_cast<unsigned int>(std::time(nullptr))),
+    mWorld(512, 512, static_cast<unsigned int>(std::time(nullptr))),
     mFpsTimer(0.f),
     mFrameCount(0),
     mFont(),
@@ -196,6 +196,7 @@ void Game::checkCollision(bool xDirection) {
 }
 
 void Game::update(float dt) {
+    mWorld.update();
     float moveSpeed = 300.f; // Pixel pro Sekunde
     mVelocity.x = 0.f;
 

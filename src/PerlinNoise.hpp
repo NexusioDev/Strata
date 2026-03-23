@@ -50,6 +50,10 @@ public:
         return lerp(v, lerp(u, grad(aa, x, y), grad(ba, x - 1, y)),
                        lerp(u, grad(ab, x, y - 1), grad(bb, x - 1, y - 1)));
     }
+
+    double noiseNorm(double x, double y) {
+        return std::clamp(noise(x, y) / 1.5, -1.0, 1.0); // auf -1..+1 normalisieren
+    }
 };
 
 #endif

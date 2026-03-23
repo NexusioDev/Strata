@@ -17,7 +17,10 @@ public:
             { TileType::Coal,  {"Kohle", {{3,0}}, sf::Color(30, 30, 30), true} },
             { TileType::Iron,  {"Eisen", {{5,0}}, sf::Color(155, 155, 155), true} },
             { TileType::Gold,  {"Gold", {{4,0}}, sf::Color(255, 215, 0), true} },
-            { TileType::Torch,  {"Fackel", {{6,0}}, sf::Color(235, 144, 0), false, true} }
+            { TileType::Torch,  {"Fackel", {{6,0}}, sf::Color(235, 144, 0), false, true} },
+            { TileType::Sand,  {"Sand", {{3,1}}, sf::Color(255, 255, 0), true, false} },
+            { TileType::Sandstone,{"Sandstein", {{3,2}}, sf::Color(140, 140, 0), true, false} },
+            { TileType::Snow,  {"Schnee", {{4,1}}, sf::Color(230, 230, 230), true, false} }
         };
         return data;
     }

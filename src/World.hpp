@@ -71,6 +71,7 @@ public:
     void isExposedToAir();
 
     int getTileVariation(int x, int y, TileType type) const;
+    sf::Color getLightning(int x, int y);
 
 private:
     // Diese Funktion wird von sf::Drawable gefordert
@@ -80,9 +81,10 @@ private:
     int mHeight;
     const float mTileSize = 20.f;
     std::vector<Tile> mTiles;
+    std::vector<sf::Color> mLight;
     PerlinNoise mNoise;
     unsigned int mSeed;
-    
+
     // Das Herzstück für Performance und Lücken-Freiheit
     sf::VertexArray mVertexArray;
     sf::Texture mTextureAtlas;
@@ -99,6 +101,9 @@ private:
     float getBiomeNoise(int x);
 
     void generateTrees();
+
+    void generateLightningMap();
+
 
     void rebuildChunk(int chunkX, int chunkY);
 };

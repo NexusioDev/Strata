@@ -14,8 +14,7 @@ World::World(int width, int height, unsigned int seed)
     : mWidth(width), mHeight(height), mSeed(seed), mNoise(seed) {
     
     mTiles.resize(width * height, Tile{TileType::Air});
-
-    //mVertexArray.setPrimitiveType(sf::PrimitiveType::TriangleFan);
+    mLight.resize(width * height, sf::Color::Magenta);
 
     mChunksX = (width + Chunk::SIZE - 1) / Chunk::SIZE;
     mChunksY = (height + Chunk::SIZE - 1) / Chunk::SIZE;
@@ -24,10 +23,6 @@ World::World(int width, int height, unsigned int seed)
     if (!mTextureAtlas.loadFromFile("../assets/tileset.png")) {
         // Fehlerbehandlung
     }
-
-    // Einstellungen für das Terrain
-    float terrainScale = 0.05f;  // Höherer Wert = mehr Hügel
-    float terrainAmp = 10.0f;    // Maximale Hügelhöhe
 
     // Einstellungen für Erze
     float oreScale = 0.12f;      // Größe der Erzadern
@@ -115,6 +110,7 @@ World::World(int width, int height, unsigned int seed)
 
     isExposedToAir();
     generateTrees();
+    generateLightningMap();
 }
 
 void World::update() {
@@ -266,6 +262,35 @@ void World::generateTrees() {
             }
         }
     }
+}
+
+void World::generateLightningMap() {
+    for (int x = 0; x < mWidth; ++x) {
+        for (int y = 0; y < mHeight; ++y) {
+            /*if (getTileType(x,y) == TileType::Air) {
+                mLight[y * mWidth + x] = sf::Color::White;
+            }
+            else {
+                mLight[y * mWidth + x] = sf::Color::Black;
+            }*/
+            for (int a = 0; a < 6; ++a) {
+                if (a < mHeight) {
+                    if (getTileType(x, y - a) == TileType::Air) {
+                        mLight[y * mWidth + x] = sf::Color::White;
+                        break;
+                    }
+                    else
+                        mLight[y * mWidth + x] = sf::Color::Black;
+                }
+                else
+                    mLight[y * mWidth + x] = sf::Color::Black;
+            }
+        }
+    }
+}
+
+sf::Color World::getLightning(int x, int y) {
+    return mLight[y * mWidth + x];
 }
 
 void World::rebuildChunk(int chunkX, int chunkY) {

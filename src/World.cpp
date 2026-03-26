@@ -265,26 +265,24 @@ void World::generateTrees() {
 }
 
 void World::generateLightningMap() {
-    for (int x = 0; x < mWidth; ++x) {
-        for (int y = 0; y < mHeight; ++y) {
-            /*if (getTileType(x,y) == TileType::Air) {
+    for (int y = 0; y < mHeight; ++y) {
+        for (int x = 0; x < mWidth; ++x) {
+            if (getTileType(x, y) == TileType::Air) {
                 mLight[y * mWidth + x] = sf::Color::White;
             }
-            else {
-                mLight[y * mWidth + x] = sf::Color::Black;
-            }*/
-            for (int a = 0; a < 6; ++a) {
-                if (a < mHeight) {
-                    if (getTileType(x, y - a) == TileType::Air) {
-                        mLight[y * mWidth + x] = sf::Color::White;
-                        break;
-                    }
-                    else
-                        mLight[y * mWidth + x] = sf::Color::Black;
+            else if (getTileType(x, y) != TileType::Air) {
+                if (getTileType(x, y - 2) == TileType::Air && getTileType(x, y - 1) == TileType::Air) {
+                    mLight[y * mWidth + x] = sf::Color(200,200,200,1);
+                } else if (getTileType(x, y - 2) == TileType::Air && getTileType(x, y - 1) != TileType::Air) {
+                    mLight[y * mWidth + x] = sf::Color(100,100,100,1);
                 }
                 else
+                {
                     mLight[y * mWidth + x] = sf::Color::Black;
+                }
             }
+            else
+                mLight[y * mWidth + x] = sf::Color::Black;
         }
     }
 }

@@ -147,6 +147,17 @@ void Game::processEvents() {
                 if (image.saveToFile("mein_bild_sfml3.png")) {
                     // Erfolg!
                 }
+
+                sf::Image imageLight(sf::Vector2u(mWorld.getWidth(), mWorld.getHeight()));
+                for (int x = 0; x < mWorld.getWidth(); ++x) {
+                    for (int y = 0; y < mWorld.getHeight(); ++y) {
+                        sf::Color lightColor = mWorld.getLightning(x,y);
+                        imageLight.setPixel(sf::Vector2u(x, y), lightColor);
+                    }
+                }
+                if (imageLight.saveToFile("lightning_sfml3.png")) {
+                    // Erfolg!
+                }
             }
         }
     }

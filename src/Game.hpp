@@ -1,8 +1,10 @@
 #ifndef STRATA_GAME_HPP
 #define STRATA_GAME_HPP
 
+#include "discordpp.h"
 #include <SFML/Graphics.hpp>
 #include "World.hpp"
+#include <memory>
 
 struct Particle {
     sf::Vector2f pos;
@@ -24,6 +26,7 @@ public:
     void run();     // Die Hauptschleife
 
 private:
+    std::unique_ptr<discordpp::Client> discordClient;
     void processEvents(); // Tastatur/Maus
     void update(float dt);        // Logik (Physik, Bewegung)
     void checkCollision(bool xDirection); //Kollisionen
@@ -59,6 +62,8 @@ private:
     sf::CircleShape mTorchLight;
     std::vector<LightSource> mLights;
     float mBrightness = 0.f;
+
+    const uint64_t APPLICATION_ID = 1488543536788934706;
 };
 
 #endif

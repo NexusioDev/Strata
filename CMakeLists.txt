@@ -15,3 +15,11 @@ add_executable(Strata src/main.cpp
         src/TileRegistry.hpp)
 
 target_link_libraries(Strata PRIVATE SFML::Network SFML::Graphics SFML::Window SFML::Audio SFML::System)
+target_include_directories(Strata PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/lib/discord_social_sdk/include")
+target_link_libraries(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/lib/discord_social_sdk/lib/release/discord_partner_sdk.lib")
+
+add_custom_command(TARGET Strata POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/lib/discord_social_sdk/bin/discord_partner_sdk.dll"
+        $<TARGET_FILE_DIR:Strata>
+)

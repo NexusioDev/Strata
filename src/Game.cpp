@@ -1,5 +1,10 @@
 #include "Game.hpp"
+#include "discordpp.h"
 #include <cmath>
+#include <thread>
+#include <string>
+#include <functional>
+#include <iostream>
 
 #include "TileRegistry.hpp"
 
@@ -48,8 +53,29 @@ Game::Game()
 
 void Game::run() {
     sf::Clock clock;
+    const auto client = std::make_shared<discordpp::Client>();
+    client->SetApplicationId(1488543536788934706);
+    discordpp::Activity activity;
+    activity.SetName("Strata - C++ Sandbox");
+    activity.SetType(discordpp::ActivityTypes::Playing);
+    activity.SetDetails("Am Spielen bruh");
+    activity.SetState("Am Entwickeln");
+
+    client->UpdateRichPresence(activity, [](const discordpp::ClientResult &result) {
+        if (result.Successful()) {
+            std::cout << "Updatete";
+        }
+        else {
+            std::cout << "Nicht update: " << result.Error();
+        }
+    });
+
+
     while (mWindow.isOpen()) {
         sf::Time deltaTime = clock.restart(); // Zeit seit dem letzten Frame messen
+        if (client) {
+            discordpp::RunCallbacks();
+        }
         processEvents();
         float dt = deltaTime.asSeconds();
         if (dt > 0.05f) dt = 0.05f; // Maximal 20 FPS "Simulations-Zeit" pro Frame

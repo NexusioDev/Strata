@@ -12,7 +12,9 @@ add_executable(Strata src/main.cpp
         src/World.cpp
         src/PerlinNoise.cpp
         src/PerlinNoise.hpp
-        src/TileRegistry.hpp)
+        src/TileRegistry.hpp
+        src/discord.hpp
+        src/discord.cpp)
 
 target_link_libraries(Strata PRIVATE SFML::Network SFML::Graphics SFML::Window SFML::Audio SFML::System)
 target_include_directories(Strata PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/lib/discord_social_sdk/include")

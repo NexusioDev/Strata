@@ -1,5 +1,6 @@
 #include "Game.hpp"
 #include "discordpp.h"
+#include "discord.hpp"
 #include <cmath>
 #include <thread>
 #include <string>
@@ -53,23 +54,9 @@ Game::Game()
 
 void Game::run() {
     sf::Clock clock;
-    const auto client = std::make_shared<discordpp::Client>();
-    client->SetApplicationId(1488543536788934706);
-    discordpp::Activity activity;
-    activity.SetName("Strata - C++ Sandbox");
-    activity.SetType(discordpp::ActivityTypes::Playing);
-    activity.SetDetails("Am Spielen bruh");
-    activity.SetState("Am Entwickeln");
-
-    client->UpdateRichPresence(activity, [](const discordpp::ClientResult &result) {
-        if (result.Successful()) {
-            std::cout << "Updatete";
-        }
-        else {
-            std::cout << "Nicht update: " << result.Error();
-        }
-    });
-
+    DC_Instance dcInstance;
+    dcInstance.InitDiscord();
+    const auto client = dcInstance.discordClient;
 
     while (mWindow.isOpen()) {
         sf::Time deltaTime = clock.restart(); // Zeit seit dem letzten Frame messen

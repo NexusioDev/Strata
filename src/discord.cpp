@@ -1,4 +1,4 @@
-#include "discordpp.h"
+#define DISCORDPP_IMPLEMENTATION
 #include "discord.hpp"
 
 #include <iostream>

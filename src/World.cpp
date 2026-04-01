@@ -265,24 +265,35 @@ void World::generateTrees() {
 }
 
 void World::generateLightningMap() {
-    for (int y = 0; y < mHeight; ++y) {
-        for (int x = 0; x < mWidth; ++x) {
-            if (getTileType(x, y) == TileType::Air) {
-                mLight[y * mWidth + x] = sf::Color::White;
+    for (int x = 0; x < mWidth; ++x) {
+        bool sunLight = true;
+        int firstSolidY = -1;
+
+        for (int y = 0; y < mHeight; ++y) {
+            int index = y * mWidth + x;
+            TileType currentType = getTileType(x, y);
+            bool isSolid = TileRegistry::get().at(currentType).isSolid;
+
+            if (sunLight && !isSolid) {
+                mLight[index] = sf::Color::White;
             }
-            else if (getTileType(x, y) != TileType::Air) {
-                if (getTileType(x, y - 2) == TileType::Air && getTileType(x, y - 1) == TileType::Air) {
-                    mLight[y * mWidth + x] = sf::Color(200,200,200,1);
-                } else if (getTileType(x, y - 2) == TileType::Air && getTileType(x, y - 1) != TileType::Air) {
-                    mLight[y * mWidth + x] = sf::Color(100,100,100,1);
+            else {
+                if (sunLight) {
+                    sunLight = false;
+                    firstSolidY = y;
                 }
-                else
-                {
-                    mLight[y * mWidth + x] = sf::Color::Black;
+
+                if (isSolid) {
+                    int depth = y - firstSolidY;
+
+                    if (depth == 0) mLight[index] = sf::Color(210,210,210,1);
+                    else if (depth == 1) mLight[index] = sf::Color(135,135,135,1);
+                    else if (depth == 2) mLight[index] = sf::Color(80,80,80,1);
+                    else mLight[index] = sf::Color::Black;
+                } else { // z.B eine Cave
+                    mLight[index] = sf::Color::Black;
                 }
             }
-            else
-                mLight[y * mWidth + x] = sf::Color::Black;
         }
     }
 }

@@ -1,11 +1,8 @@
 #include "Game.hpp"
-#include "discordpp.h"
 #include "discord.hpp"
 #include <cmath>
 #include <thread>
 #include <string>
-#include <functional>
-#include <iostream>
 
 #include "TileRegistry.hpp"
 

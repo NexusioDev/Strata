@@ -286,9 +286,9 @@ void World::generateLightningMap() {
                 if (isSolid) {
                     int depth = y - firstSolidY;
 
-                    if (depth == 0) mLight[index] = sf::Color(210,210,210,1);
-                    else if (depth == 1) mLight[index] = sf::Color(135,135,135,1);
-                    else if (depth == 2) mLight[index] = sf::Color(80,80,80,1);
+                    if (depth == 0) mLight[index] = sf::Color(210,210,210,255);
+                    else if (depth == 1) mLight[index] = sf::Color(135,135,135,255);
+                    else if (depth == 2) mLight[index] = sf::Color(80,80,80,255);
                     else mLight[index] = sf::Color::Black;
                 } else { // z.B eine Cave
                     mLight[index] = sf::Color::Black;
@@ -323,6 +323,8 @@ void World::rebuildChunk(int chunkX, int chunkY) {
             TileType type = mTiles[gy * mWidth + gx].type;
             if (type == TileType::Air) continue;
 
+            sf::Color lightColor = mLight[gy * mWidth + gx];
+
             const auto& info = TileRegistry::get().at(type);
             int variation    = getTileVariation(gx, gy, type);
             sf::Vector2f tex(info.textureCoords[variation].x * texSize,
@@ -332,17 +334,23 @@ void World::rebuildChunk(int chunkX, int chunkY) {
             // Dreieck 1
             chunk.vertexArray[v+0].position  = {pos.x, pos.y};
             chunk.vertexArray[v+0].texCoords = {tex.x, tex.y};
+            chunk.vertexArray[v+0].color = lightColor;
             chunk.vertexArray[v+1].position  = {pos.x + ts, pos.y};
             chunk.vertexArray[v+1].texCoords = {tex.x+texSize, tex.y};
+            chunk.vertexArray[v+1].color = lightColor;
             chunk.vertexArray[v+2].position  = {pos.x, pos.y + ts};
             chunk.vertexArray[v+2].texCoords = {tex.x, tex.y+texSize};
+            chunk.vertexArray[v+2].color = lightColor;
             // Dreieck 2
             chunk.vertexArray[v+3].position  = {pos.x + ts, pos.y};
             chunk.vertexArray[v+3].texCoords = {tex.x+texSize, tex.y};
+            chunk.vertexArray[v+3].color = lightColor;
             chunk.vertexArray[v+4].position  = {pos.x + ts, pos.y + ts};
             chunk.vertexArray[v+4].texCoords = {tex.x+texSize, tex.y+texSize};
+            chunk.vertexArray[v+4].color = lightColor;
             chunk.vertexArray[v+5].position  = {pos.x, pos.y + ts};
             chunk.vertexArray[v+5].texCoords = {tex.x, tex.y+texSize};
+            chunk.vertexArray[v+5].color = lightColor;
 
             v += 6;
         }

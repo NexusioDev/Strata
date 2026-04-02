@@ -110,14 +110,22 @@ World::World(int width, int height, unsigned int seed)
 
     isExposedToAir();
     generateTrees();
-    generateLightningMap();
 }
 
-void World::update() {
+void World::update(float skyBrightness) {
     for (int cy = 0; cy < mChunksY; ++cy)
         for (int cx = 0; cx < mChunksX; ++cx)
             if (mChunks[cy * mChunksX + cx].dirty)
                 rebuildChunk(cx, cy);
+
+    if (mLightNeedsUpdate) {
+        generateLightningMap(skyBrightness);
+        mLightNeedsUpdate = false;
+    }
+}
+
+void World::forceLightUpdate() {
+    mLightNeedsUpdate = true;
 }
 
 bool World::isSolid(int x, int y) const {
@@ -130,12 +138,20 @@ void World::setTile(int x, int y, TileType type) {
     if (x >= 0 && x < mWidth && y >= 0 && y < mHeight) {
         mTiles[y * mWidth + x].type = type;
         getChunk(x, y).dirty = true;
+        mLightNeedsUpdate = true;
     }
 }
 
 TileType World::getTileType(int x, int y) const {
     if (x < 0 || x >= mWidth || y < 0 || y >= mHeight) return TileType::Air;
     return mTiles[y * mWidth + x].type;
+}
+
+Tile& World::getTileRef(int x, int y) {
+    // Falls außerhalb, geben wir ein Dummy-Air-Tile zurück oder klemmen den Wert ein
+    x = std::clamp(x, 0, mWidth - 1);
+    y = std::clamp(y, 0, mHeight - 1);
+    return mTiles[y * mWidth + x];
 }
 
 void World::isExposedToAir() {
@@ -264,8 +280,70 @@ void World::generateTrees() {
     }
 }
 
-void World::generateLightningMap() {
+void World::generateLightningMap(float skyBrightness) {
+    std::vector<int> lightValues(mWidth * mHeight, 0);
+    int skyLevel = static_cast<int>(std::max(2.0f, 15.0f * skyBrightness));
+
     for (int x = 0; x < mWidth; ++x) {
+        bool seesSky = true;
+        for (int y = 0; y < mHeight; ++y) {
+            int index = x + mWidth * y;
+            TileType type = mTiles[index].type;
+
+            if (seesSky && type == TileType::Air) {
+                lightValues[index] = skyLevel;
+            } else {
+                seesSky = false;
+            }
+
+            if (TileRegistry::get().at(type).isLightSource) {
+                lightValues[index] = 14; // Fackeln sind fast so hell wie die Sonne
+            }
+        }
+    }
+
+    for (int i = 0; i < 15; i++) {
+        bool changed = false;
+        for (int y = 0; y < mHeight; ++y) {
+            for (int x = 0; x < mWidth; ++x) {
+                int index = x + mWidth * y;
+                int currentLight = lightValues[index];
+                if (currentLight <= 1) continue;
+
+                int nx[4] = {x,x,x-1,x+1};
+                int ny[4] = {y-1,y+1,y,y};
+
+                for (int n = 0; n < 4; ++n) {
+                    int nextX = nx[n];
+                    int nextY = ny[n];
+
+                    if (nextX >= 0 && nextX < mWidth && nextY >= 0 && nextY < mHeight) {
+                        int nIndex = nextY * mWidth + nextX;
+
+                        int loss = isSolid(nextX, nextY) ? 3 : 1;
+                        int newLight = currentLight - loss;
+
+                        if (newLight > lightValues[nIndex]) {
+                            lightValues[nIndex] = newLight;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+        }
+        if (!changed) break;
+    }
+
+    for (int i = 0; i < mWidth * mHeight; ++i) {
+        unsigned char c = static_cast<unsigned char>(std::max(20, lightValues[i] * 17));
+        sf::Color newColor(c, c, c, 255);
+
+        if (mLight[i] != newColor) {
+            mLight[i] = newColor;
+            getChunk(i % mWidth, i / mWidth).dirty = true;
+        }
+    }
+    /*for (int x = 0; x < mWidth; ++x) {
         bool sunLight = true;
         int firstSolidY = -1;
 
@@ -295,10 +373,11 @@ void World::generateLightningMap() {
                 }
             }
         }
-    }
+    }*/
 }
 
 sf::Color World::getLightning(int x, int y) {
+    if (x < 0 || x >= mWidth || y < 0 || y >= mHeight) return sf::Color::Black;
     return mLight[y * mWidth + x];
 }
 

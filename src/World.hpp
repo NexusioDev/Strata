@@ -59,10 +59,15 @@ class World : public sf::Drawable { // Ermöglicht window.draw(world)
 public:
     World(int width, int height, unsigned int seed);
     void setTile(int x, int y, TileType type);
-    void update();
+    void update(float skyBrightness);
+
+    void forceLightUpdate();
 
     float getTileSize() const { return mTileSize; }
     TileType getTileType(int x, int y) const;
+
+    Tile &getTileRef(int x, int y);
+
     bool isSolid(int x, int y) const;
 
     int getWidth() const { return mWidth; }
@@ -92,6 +97,7 @@ private:
     //Chunks
     std::vector<Chunk> mChunks;
     int mChunksX, mChunksY;
+    bool mLightNeedsUpdate = true;
 
     Chunk& getChunk(int tileX, int tileY);
     const Chunk& getChunk(int tileX, int tileY) const;
@@ -102,8 +108,7 @@ private:
 
     void generateTrees();
 
-    void generateLightningMap();
-
+    void generateLightningMap(float skyBrightness);
 
     void rebuildChunk(int chunkX, int chunkY);
 };

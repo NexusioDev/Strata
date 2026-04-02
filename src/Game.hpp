@@ -59,6 +59,7 @@ private:
     sf::CircleShape mTorchLight;
     std::vector<LightSource> mLights;
     float mBrightness = 0.f;
+    float mLastLightUpdateBrightness = 0.f;
 };
 
 #endif

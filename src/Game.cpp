@@ -217,7 +217,13 @@ void Game::checkCollision(bool xDirection) {
 }
 
 void Game::update(float dt) {
-    mWorld.update();
+    float brightnessDiff = std::abs(mBrightness - mLastLightUpdateBrightness);
+
+    if (brightnessDiff > 0.05f) { // Nur alle 5% Helligkeitsänderung updaten
+        mWorld.forceLightUpdate(); // Setzt mLightNeedsUpdate in der World auf true
+        mLastLightUpdateBrightness = mBrightness;
+    }
+    mWorld.update(mBrightness);
     float moveSpeed = 300.f; // Pixel pro Sekunde
     mVelocity.x = 0.f;
 
@@ -295,6 +301,7 @@ void Game::render() {
 
     // Welt, Partikel + Spieler
     mWindow.draw(mWorld);
+
     for (const auto& p : mParticles) {
         sf::RectangleShape shape({4.f, 4.f});
         shape.setPosition(p.pos);
@@ -303,7 +310,15 @@ void Game::render() {
     }
     mWindow.draw(mPlayer);
 
-    // --- Lightmaps
+    // --- Tag/Nacht Overlay ---
+    sf::RectangleShape darkOverlay({1280.f, 720.f});
+    float alpha = (1.0f - mBrightness) * 180.f;  // 0 bei Tag, ~180 bei Nacht
+    darkOverlay.setFillColor(sf::Color(0, 0, 0, static_cast<uint8_t>(alpha)));
+
+    mWindow.setView(mWindow.getDefaultView());  // ← Wichtig: Screen-Space
+    mWindow.draw(darkOverlay);
+
+    /*// --- Lightmaps
     mLightMap.clear(getAmbientColor());
     mLightMap.setView(mWorldView);
 
@@ -335,7 +350,7 @@ void Game::render() {
     // --- Licht auf die Szene projection
     mWindow.setView(mWindow.getDefaultView());
     mLightSprite.setTexture(mLightMap.getTexture(), true);
-    mWindow.draw(mLightSprite, sf::BlendMultiply);
+    mWindow.draw(mLightSprite, sf::BlendMultiply);*/
 
     // UI (unbeleuchtet)
     mWindow.draw(mFpsText);

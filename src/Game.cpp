@@ -217,13 +217,6 @@ void Game::checkCollision(bool xDirection) {
 }
 
 void Game::update(float dt) {
-    float brightnessDiff = std::abs(mBrightness - mLastLightUpdateBrightness);
-
-    if (brightnessDiff > 0.05f) { // Nur alle 5% Helligkeitsänderung updaten
-        mWorld.forceLightUpdate(); // Setzt mLightNeedsUpdate in der World auf true
-        mLastLightUpdateBrightness = mBrightness;
-    }
-    mWorld.update(mBrightness);
     float moveSpeed = 300.f; // Pixel pro Sekunde
     mVelocity.x = 0.f;
 
@@ -282,6 +275,16 @@ void Game::update(float dt) {
     float sun = std::max(0.f, std::sin(t * 6.28318f + 1.57f));
     mBrightness = (sun + 1.f) * 0.5f;   // 0.0 = Mitternacht, 1.0 = Mittag
 
+    // Helligkeit in World übertragen
+    float brightnessDiff = std::abs(mBrightness - mLastLightUpdateBrightness);
+
+    if (brightnessDiff > 0.05f) { // Nur alle 5% Helligkeitsänderung updaten
+        mWorld.forceLightUpdate(); // Setzt mLightNeedsUpdate in der World auf true
+        mLastLightUpdateBrightness = mBrightness;
+    }
+    mWorld.update(mBrightness);
+
+    // Himmelsfarbe setzen
     sf::Color day(135, 206, 235);
     sf::Color night(15, 15, 45);
 
@@ -290,6 +293,7 @@ void Game::update(float dt) {
         static_cast<uint8_t>(day.g * sun + night.g * (1-sun)),
         static_cast<uint8_t>(day.b * sun + night.b * (1-sun))
     );
+
 }
 
 void Game::render() {

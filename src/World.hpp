@@ -4,6 +4,8 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <cstdint>
+#include <atomic>
+#include <thread>
 #include "PerlinNoise.hpp"
 
 // Ein einfacher Block-Typ
@@ -77,6 +79,9 @@ public:
 
     int getTileVariation(int x, int y, TileType type) const;
     sf::Color getLightning(int x, int y);
+
+    std::atomic<bool> mIsCalculatingLight{false};
+    void asyncLightCalc(float brightness);
 
 private:
     // Diese Funktion wird von sf::Drawable gefordert

@@ -1,5 +1,5 @@
 #include "World.hpp"
-#include <cmath>
+#include <queue>
 
 #include "TileRegistry.hpp"
 
@@ -113,15 +113,95 @@ World::World(int width, int height, unsigned int seed)
 }
 
 void World::update(float skyBrightness) {
-    for (int cy = 0; cy < mChunksY; ++cy)
-        for (int cx = 0; cx < mChunksX; ++cx)
-            if (mChunks[cy * mChunksX + cx].dirty)
-                rebuildChunk(cx, cy);
-
-    if (mLightNeedsUpdate) {
-        generateLightningMap(skyBrightness);
-        mLightNeedsUpdate = false;
+    if (!mIsCalculatingLight) {
+        for (int cy = 0; cy < mChunksY; ++cy)
+            for (int cx = 0; cx < mChunksX; ++cx)
+                if (mChunks[cy * mChunksX + cx].dirty)
+                    rebuildChunk(cx, cy);
     }
+
+    if (mLightNeedsUpdate && !mIsCalculatingLight) {
+        mLightNeedsUpdate = false;
+        mIsCalculatingLight = true;
+
+        // Starte Thread
+        std::thread([this, skyBrightness]() {
+            asyncLightCalc(skyBrightness);
+        }).detach();
+    }
+}
+
+void World::asyncLightCalc(float brightness) {
+    // 1. Lokale Arbeitskopie der Lichtwerte (0-15)
+    std::vector<int> lightValues(mWidth * mHeight, 0);
+    std::queue<sf::Vector2i> lightQueue;
+
+    // Grundhelligkeit des Himmels
+    int skyLevel = static_cast<int>(std::max(2.0f, 15.0f * brightness));
+
+    // 2. Initialisierung (Himmel & Lichtquellen)
+    for (int x = 0; x < mWidth; ++x) {
+        bool seesSky = true;
+        for (int y = 0; y < mHeight; ++y) {
+            int idx = y * mWidth + x;
+            TileType type = mTiles[idx].type;
+
+            if (seesSky && type == TileType::Air) {
+                lightValues[idx] = skyLevel;
+                lightQueue.emplace(x, y);
+            } else {
+                seesSky = false;
+            }
+
+            if (TileRegistry::get().at(type).isLightSource) {
+                lightValues[idx] = 14;
+                lightQueue.emplace(x, y);
+            }
+        }
+    }
+
+    // 3. BFS Licht-Ausbreitung (Das Herzstück)
+    int dx[] = {0, 0, -1, 1};
+    int dy[] = {-1, 1, 0, 0};
+
+    while (!lightQueue.empty()) {
+        sf::Vector2i curr = lightQueue.front();
+        lightQueue.pop();
+
+        int currIdx = curr.y * mWidth + curr.x;
+        int currL = lightValues[currIdx];
+
+        for (int i = 0; i < 4; ++i) {
+            int nx = curr.x + dx[i], ny = curr.y + dy[i];
+            if (nx >= 0 && nx < mWidth && ny >= 0 && ny < mHeight) {
+                int nIdx = ny * mWidth + nx;
+
+                // Dämpfung: Festkörper schlucken mehr Licht
+                int loss = isSolid(nx, ny) ? 3 : 1;
+                int nextL = currL - loss;
+
+                if (nextL > lightValues[nIdx]) {
+                    lightValues[nIdx] = nextL;
+                    lightQueue.push({nx, ny});
+                }
+            }
+        }
+    }
+
+    // 4. Ergebnisse in das Haupt-Licht-Array übertragen
+    for (int i = 0; i < mWidth * mHeight; ++i) {
+        unsigned char c = static_cast<unsigned char>(std::max(20, lightValues[i] * 17));
+        sf::Color newColor(c, c, c, 255);
+
+        if (mLight[i] != newColor) {
+            mLight[i] = newColor;
+            // Chunk als dirty markieren, damit er im Hauptthread neu gebaut wird
+            getChunk(i % mWidth, i / mWidth).dirty = true;
+        }
+    }
+
+    // Flag zurücksetzen: Thread ist fertig!
+    mIsCalculatingLight = false;
 }
 
 void World::forceLightUpdate() {
@@ -282,6 +362,8 @@ void World::generateTrees() {
 
 void World::generateLightningMap(float skyBrightness) {
     std::vector<int> lightValues(mWidth * mHeight, 0);
+    std::queue<sf::Vector2i> lightQueue;
+
     int skyLevel = static_cast<int>(std::max(2.0f, 15.0f * skyBrightness));
 
     for (int x = 0; x < mWidth; ++x) {
@@ -292,12 +374,39 @@ void World::generateLightningMap(float skyBrightness) {
 
             if (seesSky && type == TileType::Air) {
                 lightValues[index] = skyLevel;
+                lightQueue.push({x, y});
             } else {
                 seesSky = false;
             }
 
             if (TileRegistry::get().at(type).isLightSource) {
                 lightValues[index] = 14; // Fackeln sind fast so hell wie die Sonne
+                lightQueue.push({x, y});
+            }
+        }
+    }
+
+    int dx[] = {0, 0, -1, 1};
+    int dy[] = {-1, 1, 0, 0};
+
+    while (!lightQueue.empty()) {
+        sf::Vector2i curr = lightQueue.front();
+        lightQueue.pop();
+
+        int currIdx = curr.y * mWidth + curr.x;
+        int currL = lightValues[currIdx];
+
+        for (int i = 0; i < 4; ++i) {
+            int nx = curr.x + dx[i], ny = curr.y + dy[i];
+            if (nx >= 0 && nx < mWidth && ny >= 0 && ny < mHeight) {
+                int nIdx = ny * mWidth + nx;
+                int loss = isSolid(nx, ny) ? 3 : 1;
+                int nextL = currL - loss;
+
+                if (nextL > lightValues[nIdx]) {
+                    lightValues[nIdx] = nextL;
+                    lightQueue.push({nx, ny});
+                }
             }
         }
     }

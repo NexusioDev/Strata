@@ -14,7 +14,7 @@ World::World(int width, int height, unsigned int seed)
     : mWidth(width), mHeight(height), mSeed(seed), mNoise(seed) {
     
     mTiles.resize(width * height, Tile{TileType::Air});
-    mLight.resize(width * height, sf::Color::Magenta);
+    mLight.resize(width * height, sf::Color::White);
 
     mChunksX = (width + Chunk::SIZE - 1) / Chunk::SIZE;
     mChunksY = (height + Chunk::SIZE - 1) / Chunk::SIZE;
@@ -110,6 +110,7 @@ World::World(int width, int height, unsigned int seed)
 
     isExposedToAir();
     generateTrees();
+    //generateCaves();
 }
 
 void World::update(float skyBrightness) {
@@ -149,7 +150,7 @@ void World::asyncLightCalc(float brightness) {
             if (seesSky && type == TileType::Air) {
                 lightValues[idx] = skyLevel;
                 lightQueue.emplace(x, y);
-            } else {
+            } else if (!TileRegistry::get().at(type).isLightSource) {
                 seesSky = false;
             }
 
@@ -257,6 +258,12 @@ void World::isExposedToAir() {
     }
 }
 
+const Chunk& World::getChunk(int tileX, int tileY) const {
+    int cx = std::clamp(tileX / Chunk::SIZE, 0, mChunksX - 1);
+    int cy = std::clamp(tileY / Chunk::SIZE, 0, mChunksY - 1);
+    return mChunks[cy * mChunksX + cx];
+}
+
 Chunk& World::getChunk(int tileX, int tileY) {
     int cx = tileX / Chunk::SIZE;
     int cy = tileY / Chunk::SIZE;
@@ -295,17 +302,43 @@ Biome World::getBiome(int x) {
     return Biome::Mountains;                   // 20%
 }
 
-float World::getBiomeBlend(int x) {
-    float val = getBiomeNoise(x);
-    float prev = getBiomeNoise(x - 48);
-    float diff = std::abs(val - prev);
-    float t = std::clamp(diff * 4.f, 0.f, 1.f);
-    return t * t * (3.f - 2.f * t);
-}
-
 float World::getBiomeNoise(int x) {
     return mNoise.noiseNorm(x * 0.005f, 333.3f);
 }
+
+/*void World::generateCaves() {
+    // 1. Initialisierung: Fülle alles unter der Oberfläche zufällig
+    // (Nutze deinen bestehenden surfaceY-Wert als Grenze)
+    for (int x = 0; x < mWidth; ++x) {
+        for (int y = 100; y < mHeight; ++y) { // Angenommen ab Tiefe 100
+            if (mTiles[y * mWidth + x].type == TileType::Stone) {
+                // 45% Chance, dass es Luft wird für den CA-Start
+                if ((rand() % 100) < 45) mTiles[y * mWidth + x].type = TileType::Air;
+            }
+        }
+    }
+
+    // 2. CA-Schritte (Glättung zu organischen Höhlen)
+    for (int step = 0; step < 4; ++step) {
+        std::vector<Tile> nextGen = mTiles;
+        for (int y = 1; y < mHeight - 1; ++y) {
+            for (int x = 1; x < mWidth - 1; ++x) {
+                int wallCount = 0;
+                // Nachbarn zählen
+                for (int ny = -1; ny <= 1; ++ny) {
+                    for (int nx = -1; nx <= 1; ++nx) {
+                        if (mTiles[(y + ny) * mWidth + (x + nx)].type != TileType::Air)
+                            wallCount++;
+                    }
+                }
+                // Regel: 4-5 Methode
+                if (wallCount > 4) nextGen[y * mWidth + x].type = TileType::Stone;
+                else nextGen[y * mWidth + x].type = TileType::Air;
+            }
+        }
+        mTiles = nextGen;
+    }
+}*/
 
 void World::generateTrees() {
     for (int x = 2; x < mWidth - 2; ++x) {
@@ -360,7 +393,7 @@ void World::generateTrees() {
     }
 }
 
-void World::generateLightningMap(float skyBrightness) {
+/*void World::generateLightningMap(float skyBrightness) {
     std::vector<int> lightValues(mWidth * mHeight, 0);
     std::queue<sf::Vector2i> lightQueue;
 
@@ -482,10 +515,10 @@ void World::generateLightningMap(float skyBrightness) {
                 }
             }
         }
-    }*/
-}
+    }#1#
+}*/
 
-sf::Color World::getLightning(int x, int y) {
+sf::Color World::getLightAt(int x, int y) const {
     if (x < 0 || x >= mWidth || y < 0 || y >= mHeight) return sf::Color::Black;
     return mLight[y * mWidth + x];
 }
